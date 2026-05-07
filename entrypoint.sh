@@ -93,6 +93,12 @@ fi
 echo "--- Starting services ---"
 if [[ -x /scripts/init-services.sh ]]; then
     /scripts/init-services.sh || { echo "init-services failed"; exit 1; }
+    # Read PIDs registered by init-services.sh into the watchdog array
+    if [[ -f "${VARS_DIR}/.service_pids" ]]; then
+        while IFS= read -r pid; do
+            SERVICE_PIDS+=("${pid}")
+        done < "${VARS_DIR}/.service_pids"
+    fi
 else
     # Inline service startup when init-services.sh is not present
     # Start PostgreSQL
