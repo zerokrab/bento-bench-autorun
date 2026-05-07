@@ -140,6 +140,12 @@ fi
 echo "--- Starting agents ---"
 if [[ -x /scripts/init-agents.sh ]]; then
     /scripts/init-agents.sh || { echo "init-agents failed"; exit 1; }
+    # Read agent PIDs registered by init-agents.sh into the watchdog array
+    if [[ -f "${VARS_DIR}/.agent_pids" ]]; then
+        while IFS= read -r pid; do
+            SERVICE_PIDS+=("${pid}")
+        done < "${VARS_DIR}/.agent_pids"
+    fi
 else
     # Inline agent startup when init-agents.sh is not present
     echo "Starting bento-rest-api..."
