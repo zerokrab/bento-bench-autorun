@@ -1,37 +1,33 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Fetch risc0 proving artifacts at runtime
 #
 # Downloads groth16 and blake3_groth16 artifacts to BENTO_ARTIFACTS_DIR.
-# Skips if already present (checks .r0_fetched marker file).
+# Skips if artifacts are already present (checks for risc0.bin and blake3 dir).
+# Supports env var overrides for artifact directories and download URLs.
 
 set -euo pipefail
 
 ARTIFACTS_DIR="${BENTO_ARTIFACTS_DIR:-/opt/bento/artifacts}"
-MARKER="${VARS_DIR:-/storage/vars}/.r0_fetched"
+GROTH16_DIR="${ARTIFACTS_DIR}/groth_16"
+BLAKE3_DIR="${ARTIFACTS_DIR}/blake3_groth16"
 
 GROTH16_URL="${GROTH16_ARTIFACTS_URL:-https://hancho-worker.cloudflare-y513l.workers.dev/artifacts/groth16_artifacts.tar.zst}"
 BLAKE3_URL="${BLAKE3_ARTIFACTS_URL:-https://staging-signal-artifacts.beboundless.xyz/v3/proving/blake3_groth16_artifacts.tar.xz}"
 
-mkdir -p "${ARTIFACTS_DIR}" "$(dirname "${MARKER}")"
-
-if [[ -f "${MARKER}" ]]; then
-    echo "Risc0 artifacts already fetched, skipping."
+# Skip if artifacts are already present
+if [ -f "${GROTH16_DIR}/risc0.bin" ] && [ -d "${BLAKE3_DIR}" ] && [ "$(ls -A "${BLAKE3_DIR}" 2>/dev/null)" ]; then
+    echo "risc0 artifacts already present, skipping download"
     exit 0
 fi
 
+mkdir -p "${GROTH16_DIR}" "${BLAKE3_DIR}"
+
+echo "Downloading risc0 artifacts (this may take several minutes)..."
+
 echo "Fetching groth16 artifacts..."
-curl -fSL -o /tmp/groth16_artifacts.tar.zst "${GROTH16_URL}"
-mkdir -p "${ARTIFACTS_DIR}/groth_16"
-tar --zstd -xf /tmp/groth16_artifacts.tar.zst -C /tmp
-mv /tmp/risc0 "${ARTIFACTS_DIR}/groth_16" 2>/dev/null || true
-rm -f /tmp/groth16_artifacts.tar.zst
+curl -fSL "${GROTH16_URL}" | tar --zstd -x -C "${GROTH16_DIR}" --strip-components=1
 
 echo "Fetching blake3_groth16 artifacts..."
-curl -fSL -o /tmp/blake3_groth16.tar.xz "${BLAKE3_URL}"
-mkdir -p "${ARTIFACTS_DIR}/blake3_groth16"
-tar -xJf /tmp/blake3_groth16.tar.xz -C /tmp
-mv /tmp/blake3_groth16_artifacts "${ARTIFACTS_DIR}/blake3_groth16" 2>/dev/null || true
-rm -f /tmp/blake3_groth16.tar.xz
+curl -fSL "${BLAKE3_URL}" | tar -xJ -C "${BLAKE3_DIR}" --strip-components=1
 
-touch "${MARKER}"
-echo "Risc0 artifacts fetched successfully."
+echo "risc0 artifacts ready"
