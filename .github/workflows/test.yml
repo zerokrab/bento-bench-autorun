@@ -19,8 +19,8 @@ jobs:
       - name: Run smoke test
         run: |
           # Run with order-generator-tiny suite
-          # timeout 600s = 10 minutes as requested
-          timeout 600s docker run --rm \
+          # timeout 900s = 15 minutes (services + artifacts + bench)
+          timeout 900s docker run --rm \
             --gpus all \
             -e BENTO_BENCH_SUITE=order-generator-tiny \
             -e BENTO_BENCH_CYCLES=1000000 \

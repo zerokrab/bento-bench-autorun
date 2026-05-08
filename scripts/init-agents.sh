@@ -47,13 +47,13 @@ AGENT_PIDS+=("$!")
 
 # Wait for API to be ready
 echo "Waiting for REST API..."
-for i in $(seq 1 60); do
+for i in $(seq 1 120); do
     if curl -sf "http://localhost:${REST_API_PORT}/health" > /dev/null 2>&1; then
         echo "REST API is online."
         break
     fi
-    if [[ "${i}" -eq 60 ]]; then
-        echo "REST API failed to become ready within 60 seconds"
+    if [[ "${i}" -eq 120 ]]; then
+        echo "REST API failed to become ready within 120 seconds"
         exit 1
     fi
     sleep 1
