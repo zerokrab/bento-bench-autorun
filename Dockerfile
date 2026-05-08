@@ -72,6 +72,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     gettext-base \
+    xz-utils \
     zstd \
     && rm -rf /var/lib/apt/lists/*
 
