@@ -148,8 +148,17 @@ if [[ -x /scripts/init-agents.sh ]]; then
     fi
 else
     # Inline agent startup when init-agents.sh is not present
+    # CLI: bento-rest-api --bind-addr <ADDR> <DATABASE_URL> <S3_BUCKET> <S3_ACCESS_KEY> <S3_SECRET_KEY> <S3_URL> <S3_REGION>
     echo "Starting bento-rest-api..."
-    bento-rest-api &
+    bento-rest-api \
+        --bind-addr "0.0.0.0:${REST_API_PORT:-8081}" \
+        "${DATABASE_URL}" \
+        "${S3_BUCKET:-workflow}" \
+        "${S3_ACCESS_KEY:-minioadmin}" \
+        "${S3_SECRET_KEY:-minioadmin}" \
+        "${S3_ENDPOINT:-http://localhost:9000}" \
+        "${S3_REGION:-auto}" \
+        &
     REST_API_PID=$!
     SERVICE_PIDS+=("${REST_API_PID}")
 fi

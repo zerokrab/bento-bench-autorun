@@ -41,8 +41,16 @@ echo "  EXEC_AGENTS=${EXEC_AGENTS}"
 echo "  PROVE_AGENTS=${PROVE_AGENTS}"
 
 # 1. REST API (must start first — other agents connect to it)
+# CLI: bento-rest-api --bind-addr <ADDR> <DATABASE_URL> <S3_BUCKET> <S3_ACCESS_KEY> <S3_SECRET_KEY> <S3_URL> <S3_REGION>
 echo "Starting REST API on port ${REST_API_PORT}..."
-bento-rest-api --bind-addr "0.0.0.0:${REST_API_PORT}" > "${LOG_DIR}/rest-api.log" 2>&1 &
+bento-rest-api --bind-addr "0.0.0.0:${REST_API_PORT}" \
+    "${DATABASE_URL}" \
+    "${S3_BUCKET}" \
+    "${S3_ACCESS_KEY}" \
+    "${S3_SECRET_KEY}" \
+    "${S3_ENDPOINT}" \
+    "${S3_REGION}" \
+    > "${LOG_DIR}/rest-api.log" 2>&1 &
 AGENT_PIDS+=("$!")
 
 # Wait for API to be ready
