@@ -23,8 +23,7 @@ jobs:
           # timeout 1200s = 20 minutes (artifact download + services + agents startup + bench)
           timeout 1200s docker run --rm \
             --gpus all \
-            -e BENTO_BENCH_SUITE=order-generator-tiny \
-            -e BENTO_BENCH_CYCLES=1000000 \
+            -e BENCH_SUITE=order-generator-tiny \
             bento-bench-smoke-test | tee smoke_test.log
 
       - name: Verify results
