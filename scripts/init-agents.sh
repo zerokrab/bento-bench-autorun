@@ -47,13 +47,30 @@ AGENT_PIDS+=("$!")
 
 # Wait for API to be ready
 echo "Waiting for REST API..."
-for i in $(seq 1 120); do
+for i in $(seq 1 180); do
     if curl -sf "http://localhost:${REST_API_PORT}/health" > /dev/null 2>&1; then
         echo "REST API is online."
         break
     fi
-    if [[ "${i}" -eq 120 ]]; then
-        echo "REST API failed to become ready within 120 seconds"
+    # Check if the process is still alive every 10 seconds
+    if [[ $((i % 10)) -eq 0 ]]; then
+        if ! kill -0 "${AGENT_PIDS[0]}" 2>/dev/null; then
+            echo "FATAL: REST API process (PID ${AGENT_PIDS[0]}) has exited unexpectedly"
+            echo "--- REST API log (last 80 lines) ---"
+            tail -n 80 "${LOG_DIR}/rest-api.log" 2>/dev/null || echo "(no log file found)"
+            exit 1
+        fi
+    fi
+    if [[ "${i}" -eq 180 ]]; then
+        echo "REST API failed to become ready within 180 seconds"
+        echo "--- REST API process status ---"
+        if kill -0 "${AGENT_PIDS[0]}" 2>/dev/null; then
+            echo "Process ${AGENT_PIDS[0]} is still running"
+        else
+            echo "Process ${AGENT_PIDS[0]} has exited"
+        fi
+        echo "--- REST API log (last 80 lines) ---"
+        tail -n 80 "${LOG_DIR}/rest-api.log" 2>/dev/null || echo "(no log file found)"
         exit 1
     fi
     sleep 1

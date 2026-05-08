@@ -8,6 +8,7 @@ on:
 jobs:
   smoke-test:
     runs-on: [self-hosted, linux, x64, gpu]
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -19,8 +20,8 @@ jobs:
       - name: Run smoke test
         run: |
           # Run with order-generator-tiny suite
-          # timeout 900s = 15 minutes (services + artifacts + bench)
-          timeout 900s docker run --rm \
+          # timeout 1200s = 20 minutes (artifact download + services + agents startup + bench)
+          timeout 1200s docker run --rm \
             --gpus all \
             -e BENTO_BENCH_SUITE=order-generator-tiny \
             -e BENTO_BENCH_CYCLES=1000000 \
