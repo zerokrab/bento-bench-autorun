@@ -85,21 +85,51 @@ for i in $(seq 1 180); do
 done
 
 # 2. Aux Agent
+# CLI: bento-agent --task-stream <TASK_STREAM> --monitor-requeue --redis-ttl <REDIS_TTL> <DATABASE_URL> <REDIS_URL> <S3_BUCKET> <S3_ACCESS_KEY> <S3_SECRET_KEY> <S3_URL> <S3_REGION>
 echo "Starting Aux agent..."
-bento-agent -t aux --monitor-requeue --redis-ttl 57600 > "${LOG_DIR}/aux-agent.log" 2>&1 &
+bento-agent \
+    -t aux --monitor-requeue --redis-ttl 57600 \
+    "${DATABASE_URL}" \
+    "${REDIS_URL}" \
+    "${S3_BUCKET}" \
+    "${S3_ACCESS_KEY}" \
+    "${S3_SECRET_KEY}" \
+    "${S3_ENDPOINT}" \
+    "${S3_REGION}" \
+    > "${LOG_DIR}/aux-agent.log" 2>&1 &
 AGENT_PIDS+=("$!")
 
 # 3. Exec Agents (1 per GPU by default, override with EXEC_AGENTS)
+# CLI: bento-agent --task-stream <TASK_STREAM> --segment-po2 <SEGMENT_PO2> --redis-ttl <REDIS_TTL> <DATABASE_URL> <REDIS_URL> <S3_BUCKET> <S3_ACCESS_KEY> <S3_SECRET_KEY> <S3_URL> <S3_REGION>
 echo "Starting ${EXEC_AGENTS} Exec agent(s)..."
 for i in $(seq 1 "${EXEC_AGENTS}"); do
-    bento-agent -t exec --segment-po2 "${SEGMENT_SIZE}" --redis-ttl 57600 > "${LOG_DIR}/exec-agent-${i}.log" 2>&1 &
+    bento-agent \
+        -t exec --segment-po2 "${SEGMENT_SIZE}" --redis-ttl 57600 \
+        "${DATABASE_URL}" \
+        "${REDIS_URL}" \
+        "${S3_BUCKET}" \
+        "${S3_ACCESS_KEY}" \
+        "${S3_SECRET_KEY}" \
+        "${S3_ENDPOINT}" \
+        "${S3_REGION}" \
+        > "${LOG_DIR}/exec-agent-${i}.log" 2>&1 &
     AGENT_PIDS+=("$!")
 done
 
 # 4. Prove Agents (1 per GPU)
+# CLI: bento-agent --task-stream <TASK_STREAM> --redis-ttl <REDIS_TTL> <DATABASE_URL> <REDIS_URL> <S3_BUCKET> <S3_ACCESS_KEY> <S3_SECRET_KEY> <S3_URL> <S3_REGION>
 echo "Starting ${PROVE_AGENTS} Prove agent(s)..."
 for i in $(seq 1 "${PROVE_AGENTS}"); do
-    bento-agent -t prove --redis-ttl 57600 > "${LOG_DIR}/prove-agent-${i}.log" 2>&1 &
+    bento-agent \
+        -t prove --redis-ttl 57600 \
+        "${DATABASE_URL}" \
+        "${REDIS_URL}" \
+        "${S3_BUCKET}" \
+        "${S3_ACCESS_KEY}" \
+        "${S3_SECRET_KEY}" \
+        "${S3_ENDPOINT}" \
+        "${S3_REGION}" \
+        > "${LOG_DIR}/prove-agent-${i}.log" 2>&1 &
     AGENT_PIDS+=("$!")
 done
 
