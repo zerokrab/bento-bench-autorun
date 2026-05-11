@@ -37,44 +37,107 @@ AGENT_PIDS=()
 echo "Starting Bento agents..."
 echo "  REST_API_PORT=${REST_API_PORT}"
 echo "  SEGMENT_SIZE=${SEGMENT_SIZE}"
+echo "  GPU_COUNT=${GPU_COUNT}"
 echo "  EXEC_AGENTS=${EXEC_AGENTS}"
 echo "  PROVE_AGENTS=${PROVE_AGENTS}"
 
 # 1. REST API (must start first — other agents connect to it)
+# CLI: bento-rest-api --bind-addr <ADDR> <DATABASE_URL> <S3_BUCKET> <S3_ACCESS_KEY> <S3_SECRET_KEY> <S3_URL> <S3_REGION>
 echo "Starting REST API on port ${REST_API_PORT}..."
-bento-rest-api --bind-addr "0.0.0.0:${REST_API_PORT}" > "${LOG_DIR}/rest-api.log" 2>&1 &
+bento-rest-api --bind-addr "0.0.0.0:${REST_API_PORT}" \
+    "${DATABASE_URL}" \
+    "${S3_BUCKET}" \
+    "${S3_ACCESS_KEY}" \
+    "${S3_SECRET_KEY}" \
+    "${S3_ENDPOINT}" \
+    "${S3_REGION}" \
+    > "${LOG_DIR}/rest-api.log" 2>&1 &
 AGENT_PIDS+=("$!")
 
 # Wait for API to be ready
 echo "Waiting for REST API..."
-for i in $(seq 1 60); do
+for i in $(seq 1 180); do
     if curl -sf "http://localhost:${REST_API_PORT}/health" > /dev/null 2>&1; then
         echo "REST API is online."
         break
     fi
-    if [[ "${i}" -eq 60 ]]; then
-        echo "REST API failed to become ready within 60 seconds"
+    # Check if the process is still alive every 10 seconds
+    if [[ $((i % 10)) -eq 0 ]]; then
+        if ! kill -0 "${AGENT_PIDS[0]}" 2>/dev/null; then
+            echo "FATAL: REST API process (PID ${AGENT_PIDS[0]}) has exited unexpectedly"
+            echo "--- REST API log ---"
+            cat "${LOG_DIR}/rest-api.log" 2>/dev/null || echo "(no log file found)"
+            exit 1
+        fi
+    fi
+    if [[ "${i}" -eq 180 ]]; then
+        echo "REST API failed to become ready within 180 seconds"
+        echo "--- REST API process status ---"
+        if kill -0 "${AGENT_PIDS[0]}" 2>/dev/null; then
+            echo "Process ${AGENT_PIDS[0]} is still running"
+        else
+            echo "Process ${AGENT_PIDS[0]} has exited"
+        fi
+        echo "--- REST API log ---"
+        cat "${LOG_DIR}/rest-api.log" 2>/dev/null || echo "(no log file found)"
         exit 1
     fi
     sleep 1
 done
 
 # 2. Aux Agent
+# CLI: bento-agent --task-stream <TASK_STREAM> --monitor-requeue --redis-ttl <REDIS_TTL> <DATABASE_URL> <REDIS_URL> <S3_BUCKET> <S3_ACCESS_KEY> <S3_SECRET_KEY> <S3_URL> <S3_REGION>
 echo "Starting Aux agent..."
-bento-agent -t aux --monitor-requeue --redis-ttl 57600 > "${LOG_DIR}/aux-agent.log" 2>&1 &
+bento-agent \
+    -t aux --monitor-requeue --redis-ttl 57600 \
+    "${DATABASE_URL}" \
+    "${REDIS_URL}" \
+    "${S3_BUCKET}" \
+    "${S3_ACCESS_KEY}" \
+    "${S3_SECRET_KEY}" \
+    "${S3_ENDPOINT}" \
+    "${S3_REGION}" \
+    > "${LOG_DIR}/aux-agent.log" 2>&1 &
 AGENT_PIDS+=("$!")
 
 # 3. Exec Agents (1 per GPU by default, override with EXEC_AGENTS)
+# Exec agents are CPU-only and do not require GPU access.
+# CLI: bento-agent --task-stream <TASK_STREAM> --segment-po2 <SEGMENT_PO2> --redis-ttl <REDIS_TTL> <DATABASE_URL> <REDIS_URL> <S3_BUCKET> <S3_ACCESS_KEY> <S3_SECRET_KEY> <S3_URL> <S3_REGION>
 echo "Starting ${EXEC_AGENTS} Exec agent(s)..."
 for i in $(seq 1 "${EXEC_AGENTS}"); do
-    bento-agent -t exec --segment-po2 "${SEGMENT_SIZE}" --redis-ttl 57600 > "${LOG_DIR}/exec-agent-${i}.log" 2>&1 &
+    echo "  Exec agent ${i} (CPU-only)"
+    bento-agent \
+        -t exec --segment-po2 "${SEGMENT_SIZE}" --redis-ttl 57600 \
+        "${DATABASE_URL}" \
+        "${REDIS_URL}" \
+        "${S3_BUCKET}" \
+        "${S3_ACCESS_KEY}" \
+        "${S3_SECRET_KEY}" \
+        "${S3_ENDPOINT}" \
+        "${S3_REGION}" \
+        > "${LOG_DIR}/exec-agent-${i}.log" 2>&1 &
     AGENT_PIDS+=("$!")
 done
 
 # 4. Prove Agents (1 per GPU)
+# Each prove agent is assigned to a specific GPU via CUDA_VISIBLE_DEVICES.
+# On single-GPU systems both exec and prove agents share GPU 0, which may
+# cause OOM for VRAM-intensive prove workloads (see known issue in PR #20).
+# CLI: bento-agent --task-stream <TASK_STREAM> --redis-ttl <REDIS_TTL> <DATABASE_URL> <REDIS_URL> <S3_BUCKET> <S3_ACCESS_KEY> <S3_SECRET_KEY> <S3_URL> <S3_REGION>
 echo "Starting ${PROVE_AGENTS} Prove agent(s)..."
 for i in $(seq 1 "${PROVE_AGENTS}"); do
-    bento-agent -t prove --redis-ttl 57600 > "${LOG_DIR}/prove-agent-${i}.log" 2>&1 &
+    gpu=$(( (i - 1) % GPU_COUNT ))
+    echo "  Prove agent ${i} -> GPU ${gpu}"
+    CUDA_VISIBLE_DEVICES="${gpu}" bento-agent \
+        -t prove --redis-ttl 57600 \
+        "${DATABASE_URL}" \
+        "${REDIS_URL}" \
+        "${S3_BUCKET}" \
+        "${S3_ACCESS_KEY}" \
+        "${S3_SECRET_KEY}" \
+        "${S3_ENDPOINT}" \
+        "${S3_REGION}" \
+        > "${LOG_DIR}/prove-agent-${i}.log" 2>&1 &
     AGENT_PIDS+=("$!")
 done
 

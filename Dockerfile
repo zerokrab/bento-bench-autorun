@@ -63,6 +63,7 @@ ENV BENTO_BIN_DIR=/opt/bento/bin \
     REST_API_PORT=8081 \
     REDIS_PORT=6379 \
     RUST_LOG=info \
+    RUST_BACKTRACE=1 \
     PATH="/opt/bento/bin:/opt/bento/bin/bento-bench:${PATH}"
 
 # System packages
@@ -72,6 +73,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     gettext-base \
+    xz-utils \
     zstd \
     && rm -rf /var/lib/apt/lists/*
 

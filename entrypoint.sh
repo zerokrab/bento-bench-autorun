@@ -67,8 +67,17 @@ watchdog() {
             if ! kill -0 "${pid}" 2>/dev/null; then
                 echo "FATAL: Service PID ${pid} crashed"
                 echo "Dumping logs from /tmp/bento-logs/..."
-                tail -n 50 /tmp/bento-logs/*.log 2>/dev/null || echo "(no log files found)"
-                exit 1
+                cat /tmp/bento-logs/*.log 2>/dev/null || echo "(no log files found)"
+                # Send SIGTERM to the parent entrypoint process so the EXIT
+                # trap fires and cleans up all child services.  A bare
+                # `exit 1` only exits the watchdog subshell, leaving the
+                # container running as a zombie.
+                kill -TERM "$$" 2>/dev/null
+                # Must exit the watchdog subshell immediately — without this,
+                # the loop would re-detect the same dead PID every 5 seconds,
+                # flooding the logs and preventing the parent's trap from
+                # completing cleanup.
+                return 1
             fi
         done
         sleep 5
@@ -148,8 +157,17 @@ if [[ -x /scripts/init-agents.sh ]]; then
     fi
 else
     # Inline agent startup when init-agents.sh is not present
+    # CLI: bento-rest-api --bind-addr <ADDR> <DATABASE_URL> <S3_BUCKET> <S3_ACCESS_KEY> <S3_SECRET_KEY> <S3_URL> <S3_REGION>
     echo "Starting bento-rest-api..."
-    bento-rest-api &
+    bento-rest-api \
+        --bind-addr "0.0.0.0:${REST_API_PORT:-8081}" \
+        "${DATABASE_URL}" \
+        "${S3_BUCKET:-workflow}" \
+        "${S3_ACCESS_KEY:-minioadmin}" \
+        "${S3_SECRET_KEY:-minioadmin}" \
+        "${S3_ENDPOINT:-http://localhost:9000}" \
+        "${S3_REGION:-auto}" \
+        &
     REST_API_PID=$!
     SERVICE_PIDS+=("${REST_API_PID}")
 fi
