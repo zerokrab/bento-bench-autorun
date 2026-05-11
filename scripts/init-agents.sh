@@ -65,8 +65,8 @@ for i in $(seq 1 180); do
     if [[ $((i % 10)) -eq 0 ]]; then
         if ! kill -0 "${AGENT_PIDS[0]}" 2>/dev/null; then
             echo "FATAL: REST API process (PID ${AGENT_PIDS[0]}) has exited unexpectedly"
-            echo "--- REST API log (last 80 lines) ---"
-            tail -n 80 "${LOG_DIR}/rest-api.log" 2>/dev/null || echo "(no log file found)"
+            echo "--- REST API log ---"
+            cat "${LOG_DIR}/rest-api.log" 2>/dev/null || echo "(no log file found)"
             exit 1
         fi
     fi
@@ -78,8 +78,8 @@ for i in $(seq 1 180); do
         else
             echo "Process ${AGENT_PIDS[0]} has exited"
         fi
-        echo "--- REST API log (last 80 lines) ---"
-        tail -n 80 "${LOG_DIR}/rest-api.log" 2>/dev/null || echo "(no log file found)"
+        echo "--- REST API log ---"
+        cat "${LOG_DIR}/rest-api.log" 2>/dev/null || echo "(no log file found)"
         exit 1
     fi
     sleep 1
@@ -101,14 +101,12 @@ bento-agent \
 AGENT_PIDS+=("$!")
 
 # 3. Exec Agents (1 per GPU by default, override with EXEC_AGENTS)
-# Each exec agent is assigned to a specific GPU via CUDA_VISIBLE_DEVICES
-# to prevent GPU contention on multi-GPU systems.
+# Exec agents are CPU-only and do not require GPU access.
 # CLI: bento-agent --task-stream <TASK_STREAM> --segment-po2 <SEGMENT_PO2> --redis-ttl <REDIS_TTL> <DATABASE_URL> <REDIS_URL> <S3_BUCKET> <S3_ACCESS_KEY> <S3_SECRET_KEY> <S3_URL> <S3_REGION>
 echo "Starting ${EXEC_AGENTS} Exec agent(s)..."
 for i in $(seq 1 "${EXEC_AGENTS}"); do
-    gpu=$(( (i - 1) % GPU_COUNT ))
-    echo "  Exec agent ${i} -> GPU ${gpu}"
-    CUDA_VISIBLE_DEVICES="${gpu}" bento-agent \
+    echo "  Exec agent ${i} (CPU-only)"
+    bento-agent \
         -t exec --segment-po2 "${SEGMENT_SIZE}" --redis-ttl 57600 \
         "${DATABASE_URL}" \
         "${REDIS_URL}" \

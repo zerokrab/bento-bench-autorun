@@ -67,7 +67,7 @@ watchdog() {
             if ! kill -0 "${pid}" 2>/dev/null; then
                 echo "FATAL: Service PID ${pid} crashed"
                 echo "Dumping logs from /tmp/bento-logs/..."
-                tail -n 50 /tmp/bento-logs/*.log 2>/dev/null || echo "(no log files found)"
+                cat /tmp/bento-logs/*.log 2>/dev/null || echo "(no log files found)"
                 # Send SIGTERM to the parent entrypoint process so the EXIT
                 # trap fires and cleans up all child services.  A bare
                 # `exit 1` only exits the watchdog subshell, leaving the

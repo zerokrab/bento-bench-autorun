@@ -31,6 +31,7 @@ jobs:
             --gpus all \
             -e BENCH_SUITE=${{ env.BENCH_SUITE_URL }} \
             -e RUST_BACKTRACE=1 \
+            -e SEGMENT_SIZE=17 \
             bento-bench-smoke-test | tee smoke_test.log
 
       - name: Verify results
