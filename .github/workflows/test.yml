@@ -30,6 +30,7 @@ jobs:
           timeout 1200s docker run --rm \
             --gpus all \
             -e BENCH_SUITE=${{ env.BENCH_SUITE_URL }} \
+            -e RUST_BACKTRACE=1 \
             bento-bench-smoke-test | tee smoke_test.log
 
       - name: Verify results

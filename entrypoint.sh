@@ -73,6 +73,11 @@ watchdog() {
                 # `exit 1` only exits the watchdog subshell, leaving the
                 # container running as a zombie.
                 kill -TERM "$$" 2>/dev/null
+                # Must exit the watchdog subshell immediately — without this,
+                # the loop would re-detect the same dead PID every 5 seconds,
+                # flooding the logs and preventing the parent's trap from
+                # completing cleanup.
+                return 1
             fi
         done
         sleep 5
