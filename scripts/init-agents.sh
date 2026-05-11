@@ -37,6 +37,7 @@ AGENT_PIDS=()
 echo "Starting Bento agents..."
 echo "  REST_API_PORT=${REST_API_PORT}"
 echo "  SEGMENT_SIZE=${SEGMENT_SIZE}"
+echo "  GPU_COUNT=${GPU_COUNT}"
 echo "  EXEC_AGENTS=${EXEC_AGENTS}"
 echo "  PROVE_AGENTS=${PROVE_AGENTS}"
 
@@ -100,10 +101,14 @@ bento-agent \
 AGENT_PIDS+=("$!")
 
 # 3. Exec Agents (1 per GPU by default, override with EXEC_AGENTS)
+# Each exec agent is assigned to a specific GPU via CUDA_VISIBLE_DEVICES
+# to prevent GPU contention on multi-GPU systems.
 # CLI: bento-agent --task-stream <TASK_STREAM> --segment-po2 <SEGMENT_PO2> --redis-ttl <REDIS_TTL> <DATABASE_URL> <REDIS_URL> <S3_BUCKET> <S3_ACCESS_KEY> <S3_SECRET_KEY> <S3_URL> <S3_REGION>
 echo "Starting ${EXEC_AGENTS} Exec agent(s)..."
 for i in $(seq 1 "${EXEC_AGENTS}"); do
-    bento-agent \
+    gpu=$(( (i - 1) % GPU_COUNT ))
+    echo "  Exec agent ${i} -> GPU ${gpu}"
+    CUDA_VISIBLE_DEVICES="${gpu}" bento-agent \
         -t exec --segment-po2 "${SEGMENT_SIZE}" --redis-ttl 57600 \
         "${DATABASE_URL}" \
         "${REDIS_URL}" \
@@ -117,10 +122,15 @@ for i in $(seq 1 "${EXEC_AGENTS}"); do
 done
 
 # 4. Prove Agents (1 per GPU)
+# Each prove agent is assigned to a specific GPU via CUDA_VISIBLE_DEVICES.
+# On single-GPU systems both exec and prove agents share GPU 0, which may
+# cause OOM for VRAM-intensive prove workloads (see known issue in PR #20).
 # CLI: bento-agent --task-stream <TASK_STREAM> --redis-ttl <REDIS_TTL> <DATABASE_URL> <REDIS_URL> <S3_BUCKET> <S3_ACCESS_KEY> <S3_SECRET_KEY> <S3_URL> <S3_REGION>
 echo "Starting ${PROVE_AGENTS} Prove agent(s)..."
 for i in $(seq 1 "${PROVE_AGENTS}"); do
-    bento-agent \
+    gpu=$(( (i - 1) % GPU_COUNT ))
+    echo "  Prove agent ${i} -> GPU ${gpu}"
+    CUDA_VISIBLE_DEVICES="${gpu}" bento-agent \
         -t prove --redis-ttl 57600 \
         "${DATABASE_URL}" \
         "${REDIS_URL}" \
