@@ -36,8 +36,8 @@ Replace `<suite-url>` with the URL of the benchmark suite tarball (e.g. `https:/
 
 When the container starts, it performs the following steps automatically:
 
-1. **GPU Detection** (`detect-gpu.sh`) — Verifies NVIDIA GPU availability and sets `GPU_COUNT` and `SEGMENT_SIZE` based on the detected hardware. The full `nvidia-smi` output is logged at startup for diagnostic auditing.
-2. **Artifact Initialization** (`init-artifacts.sh`) — Fetches risc0 proving artifacts (groth16 and blake3_groth16) if not already present. Skipped when `SKIP_R0_INIT=true`.
+1. **GPU Detection** (`detect-gpu.sh`) — Verifies NVIDIA GPU availability and sets `GPU_COUNT` and `SEGMENT_SIZE` based on the detected hardware.
+2. **Artifact Initialization** (`init-artifacts.sh`) — Fetches risc0 proving artifacts (groth16 and blake3_groth16) if not already present. Detects baked-in artifacts by checking for `settings.toml` and `verify_for_guest_final.zkey` sentinel files. Skipped when `SKIP_R0_INIT=true`.
 3. **Service Setup** (`init-services.sh`) — Starts PostgreSQL, Redis, and MinIO. The S3 bucket is created automatically if it does not exist.
 4. **Agent Startup** (`init-agents.sh`) — Launches the REST API, aux agent, exec agents (1 per GPU), and prove agents (1 per GPU). Waits for the REST API to become healthy before proceeding.
 5. **Benchmark Execution** (`run-bench.sh`) — Runs the specified `BENCH_SUITE` via `bento-bench`. The container exits with the benchmark's exit code.
