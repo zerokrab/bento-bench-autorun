@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # GPU Count detection
-GPU_COUNT=$(nvidia-smi --list-gpus | grep -c "GPU")
+GPU_COUNT=$(nvidia-smi --list-gpus | wc -l)
 export GPU_COUNT
 
 # Segment Size detection
@@ -16,7 +16,8 @@ if [ -z "${SEGMENT_SIZE:-}" ]; then
     else
         export SEGMENT_SIZE=21  # default
     fi
-    echo "Auto-detected: GPU=$GPU_NAME, SEGMENT_SIZE=$SEGMENT_SIZE"
+    echo "Auto-detected: GPU=$GPU_NAME, SEGMENT_SIZE=$SEGMENT_SIZE, GPU_COUNT=$GPU_COUNT"
 else
+    echo "Auto-detected: GPU_COUNT=$GPU_COUNT"
     echo "Using override: SEGMENT_SIZE=$SEGMENT_SIZE"
 fi

@@ -88,14 +88,10 @@ watchdog() {
 
 # 1. Detect GPU
 echo "--- Detecting GPU ---"
-if [[ -x /scripts/detect-gpu.sh ]]; then
-    /scripts/detect-gpu.sh || { echo "detect-gpu failed"; exit 1; }
-fi
-
-# Log full GPU configuration for diagnostics
-echo "--- Machine GPU Configuration ---"
 nvidia-smi || echo "(nvidia-smi not available)"
-echo "---------------------------------"
+if [[ -x /scripts/detect-gpu.sh ]]; then
+    source /scripts/detect-gpu.sh || { echo "detect-gpu failed"; exit 1; }
+fi
 
 # 2. Initialize risc0 artifacts
 # If artifacts were baked into image (BAKE_ARTIFACTS=true), this skips download.
