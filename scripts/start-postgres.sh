@@ -12,7 +12,8 @@ if [[ ! -f "${DB_INIT_FLAG}" ]]; then
     echo "Initializing PostgreSQL cluster..."
 
     # Drop default cluster if it exists
-    pg_lsclusters 2>/dev/null | grep -q "16" && pg_dropcluster 16 main --stop 2>/dev/null || true
+    # shellcheck disable=SC2015
+    pg_lsclusters 2>/dev/null | grep -q "16" && { pg_dropcluster 16 main --stop 2>/dev/null || true; }
 
     # Create data directory
     mkdir -p "${PGDATA}"

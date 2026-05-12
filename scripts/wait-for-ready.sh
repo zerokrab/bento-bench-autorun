@@ -11,7 +11,7 @@ COUNT=0
 echo "Waiting for Bento REST API to be ready on port $PORT..."
 
 while [ $COUNT -lt $MAX_WAIT ]; do
-  if curl -s http://localhost:$PORT/health > /dev/null; then
+  if curl -s "http://localhost:${PORT}/health" > /dev/null; then
     echo "Bento REST API is ready!"
     exit 0
   fi
