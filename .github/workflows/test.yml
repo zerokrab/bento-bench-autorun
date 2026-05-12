@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  BENCH_SUITE_URL: "https://boundless-benchmarks.mintybasil.dev/suites/suite-og-4-1m-10m.tar.zst"
+  BENCH_SUITE_URL: "https://boundless-benchmarks.mintybasil.dev/suites/suite-og-testing-1-1m.tar.zst"
 
 jobs:
   shell-tests:
@@ -41,7 +41,7 @@ jobs:
 
       - name: Run smoke test
         run: |
-          # Run with order-generator-tiny suite
+          # Run with internal testing suite
           # timeout 1200s = 20 minutes (artifact download + services + agents startup + bench)
           timeout 1200s docker run --rm \
             --gpus all \
