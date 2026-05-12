@@ -32,9 +32,12 @@ RUN curl -fSL https://dl.min.io/server/minio/release/linux-amd64/minio \
     chmod +x /usr/local/bin/mc
 
 # =============================================================================
-# Artifact Build Stage — bake risc0 artifacts into image (5-8 GB)
+# Artifact Build Stage — optionally bake risc0 artifacts into image (5-8 GB)
+# Controlled by build arg: --build-arg BAKE_ARTIFACTS=true (default) or false
 # =============================================================================
 FROM ubuntu:24.04 AS artifact-builder
+
+ARG BAKE_ARTIFACTS=true
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
@@ -43,14 +46,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zstd \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /opt/bento/artifacts/groth_16 /opt/bento/artifacts/blake3_groth16 && \
-    echo "Fetching groth16 artifacts..." && \
-    curl -fSL "https://hancho-worker.cloudflare-y513l.workers.dev/artifacts/groth16_artifacts.tar.zst" \
-    | tar --zstd -x -C /opt/bento/artifacts/groth_16 --strip-components=1 && \
-    echo "Fetching blake3_groth16 artifacts..." && \
-    curl -fSL "https://staging-signal-artifacts.beboundless.xyz/v3/proving/blake3_groth16_artifacts.tar.xz" \
-    | tar -xJ -C /opt/bento/artifacts/blake3_groth16 --strip-components=1 && \
-    echo "Artifacts baked into image"
+RUN if [ "$BAKE_ARTIFACTS" = "true" ]; then \
+        mkdir -p /opt/bento/artifacts/groth_16 /opt/bento/artifacts/blake3_groth16 && \
+        echo "Fetching groth16 artifacts..." && \
+        curl -fSL "https://hancho-worker.cloudflare-y513l.workers.dev/artifacts/groth16_artifacts.tar.zst" \
+        | tar --zstd -x -C /opt/bento/artifacts/groth_16 --strip-components=1 && \
+        echo "Fetching blake3_groth16 artifacts..." && \
+        curl -fSL "https://staging-signal-artifacts.beboundless.xyz/v3/proving/blake3_groth16_artifacts.tar.xz" \
+        | tar -xJ -C /opt/bento/artifacts/blake3_groth16 --strip-components=1 && \
+        echo "Artifacts baked into image"; \
+    else \
+        echo "Skipping artifact download (BAKE_ARTIFACTS=false)"; \
+    fi
 
 # =============================================================================
 # Final Stage — runtime image
@@ -92,7 +99,7 @@ COPY --from=builder /opt/bento/bin /opt/bento/bin
 COPY --from=builder /usr/local/bin/minio /usr/local/bin/minio
 COPY --from=builder /usr/local/bin/mc /usr/local/bin/mc
 
-# Copy baked artifacts from artifact-builder
+# Copy baked artifacts from artifact-builder (only if BAKE_ARTIFACTS=true)
 COPY --from=artifact-builder /opt/bento/artifacts /opt/bento/artifacts
 
 # Copy scripts and entrypoint
