@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # GPU Count detection
-GPU_COUNT=$(nvidia-smi --list-gpus | wc -l)
+GPU_COUNT=$(nvidia-smi --list-gpus | grep -c "GPU")
 export GPU_COUNT
 
 # Segment Size detection
