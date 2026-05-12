@@ -89,7 +89,7 @@ watchdog() {
 # 1. Detect GPU
 echo "--- Detecting GPU ---"
 if [[ -x /scripts/detect-gpu.sh ]]; then
-    /scripts/detect-gpu.sh || { echo "detect-gpu failed"; exit 1; }
+    source /scripts/detect-gpu.sh || { echo "detect-gpu failed"; exit 1; }
 fi
 
 # Log full GPU configuration for diagnostics
@@ -126,7 +126,7 @@ else
     # Start MinIO
     echo "Starting MinIO..."
     export MINIO_ROOT_USER="${S3_ACCESS_KEY:-minioadmin}"
-    export MINIO_ROOT_PASSWORD="${S3_SECRET_KEY:-minioadmin}"
+    export MINIO_ROOT_PASSWORD="${S3_S...min}"
     minio server "${STORAGE_ROOT}/minio-data" --console-address ":9001" &
     MINIO_PID=$!
     SERVICE_PIDS+=("${MINIO_PID}")
@@ -195,7 +195,7 @@ else
             break
         fi
         if [[ "${i}" -eq 120 ]]; then
-            echo "bento-rest-api never became ready within 120 seconds"
+            echo "bento-bench-autorun never became ready within 120 seconds"
             exit 1
         fi
         sleep 1
