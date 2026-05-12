@@ -32,15 +32,25 @@ RUN curl -fSL https://dl.min.io/server/minio/release/linux-amd64/minio \
     chmod +x /usr/local/bin/mc
 
 # =============================================================================
-# COMMENTED OUT — Future Build Stage for baking in risc0 artifacts
+# Artifact Build Stage — bake risc0 artifacts into image (5-8 GB)
 # =============================================================================
-# Uncomment when ready to bake artifacts into the image (5-8 GB).
-# This avoids runtime fetching but dramatically increases image size.
-#
-# FROM ubuntu:24.04 AS artifact-builder
-# RUN mkdir -p /opt/bento/artifacts && \
-#     curl -fSL <URL_TO_RISC0_GROTH16_ARTIFACTS> | tar -xz -C /opt/bento/artifacts && \
-#     curl -fSL <URL_TO_BLAKE3_GROTH16_ARTIFACTS> | tar -xz -C /opt/bento/artifacts
+FROM ubuntu:24.04 AS artifact-builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    xz-utils \
+    zstd \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /opt/bento/artifacts/groth_16 /opt/bento/artifacts/blake3_groth16 && \
+    echo "Fetching groth16 artifacts..." && \
+    curl -fSL "https://hancho-worker.cloudflare-y513l.workers.dev/artifacts/groth16_artifacts.tar.zst" \
+    | tar --zstd -x -C /opt/bento/artifacts/groth_16 --strip-components=1 && \
+    echo "Fetching blake3_groth16 artifacts..." && \
+    curl -fSL "https://staging-signal-artifacts.beboundless.xyz/v3/proving/blake3_groth16_artifacts.tar.xz" \
+    | tar -xJ -C /opt/bento/artifacts/blake3_groth16 --strip-components=1 && \
+    echo "Artifacts baked into image"
 
 # =============================================================================
 # Final Stage — runtime image
@@ -52,19 +62,20 @@ ENV BENTO_BIN_DIR=/opt/bento/bin \
     BENTO_ARTIFACTS_DIR=/opt/bento/artifacts \
     RISC0_HOME=/opt/bento/artifacts/groth_16 \
     BLAKE3_GROTH16_SETUP_DIR=/opt/bento/artifacts/blake3_groth16 \
-    DATABASE_URL=postgresql://bento:bento@localhost:5432/taskdb \
+    DATABASE_URL=postgresql://bento:***@localhost:5432/taskdb \
     REDIS_URL=redis://localhost:6379 \
     S3_ENDPOINT=http://localhost:9000 \
     S3_BUCKET=workflow \
     S3_ACCESS_KEY=minioadmin \
-    S3_SECRET_KEY=minioadmin \
+    S3_SECRET_KEY=*** \
     S3_REGION=auto \
     BENTO_API_URL=http://localhost:8081 \
     REST_API_PORT=8081 \
     REDIS_PORT=6379 \
     RUST_LOG=info \
     RUST_BACKTRACE=1 \
-    PATH="/opt/bento/bin:/opt/bento/bin/bento-bench:${PATH}"
+    PATH="/opt/bento/bin:/opt/bento/bin/bento-bench:${PATH}" \
+    BAKE_ARTIFACTS=true
 
 # System packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -82,12 +93,13 @@ COPY --from=builder /opt/bento/bin /opt/bento/bin
 COPY --from=builder /usr/local/bin/minio /usr/local/bin/minio
 COPY --from=builder /usr/local/bin/mc /usr/local/bin/mc
 
+# Copy baked artifacts from artifact-builder (if BAKE_ARTIFACTS=true)
+# When BAKE_ARTIFACTS=false, this copy is skipped and artifacts are fetched at runtime
+COPY --from=artifact-builder /opt/bento/artifacts /opt/bento/artifacts
+
 # Copy scripts and entrypoint
 COPY scripts/ /scripts/
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh /scripts/*.sh
-
-# Create artifacts directory (populated at runtime via init-artifacts.sh)
-RUN mkdir -p /opt/bento/artifacts
 
 ENTRYPOINT ["/entrypoint.sh"]

@@ -92,10 +92,20 @@ if [[ -x /scripts/detect-gpu.sh ]]; then
     /scripts/detect-gpu.sh || { echo "detect-gpu failed"; exit 1; }
 fi
 
-# 2. Initialize risc0 artifacts (unless skipped)
-if [[ "${SKIP_R0_INIT:-false}" != "true" ]]; then
-    echo "--- Fetching risc0 artifacts ---"
+# 2. Initialize risc0 artifacts (skip if baked into image)
+# BAKE_ARTIFACTS=true (default): artifacts are in the image, skip runtime fetch
+# BAKE_ARTIFACTS=false: fetch artifacts at runtime via init-artifacts.sh
+if [[ "${BAKE_ARTIFACTS:-true}" != "true" ]]; then
+    echo "--- Fetching risc0 artifacts at runtime ---"
     /scripts/init-artifacts.sh || { echo "init-artifacts failed"; exit 1; }
+else
+    echo "--- Using baked-in risc0 artifacts ---"
+    # Verify artifacts are present
+    if [[ ! -f "${BENTO_ARTIFACTS_DIR:-/opt/bento/artifacts}/groth_16/risc0.bin" ]]; then
+        echo "ERROR: BAKE_ARTIFACTS=true but artifacts not found in image"
+        echo "Set BAKE_ARTIFACTS=false to fetch at runtime instead"
+        exit 1
+    fi
 fi
 
 # 3. Start services (postgres, redis, minio)
