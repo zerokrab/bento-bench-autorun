@@ -6,7 +6,7 @@
 #
 # Startup sequence:
 #   1. detect-gpu.sh     -> sets GPU_COUNT, SEGMENT_SIZE
-#   2. init-artifacts.sh  -> fetch risc0 artifacts if not baked into image
+#   2. init-artifacts.sh  -> fetch risc0 artifacts (skips if baked into image)
 #   3. init-services.sh   -> starts postgres, redis, minio
 #   4. init-agents.sh     -> starts bento-rest-api, aux, exec, prove agents
 #   5. watchdog           -> background loop monitoring service PIDs
@@ -92,11 +92,11 @@ if [[ -x /scripts/detect-gpu.sh ]]; then
     /scripts/detect-gpu.sh || { echo "detect-gpu failed"; exit 1; }
 fi
 
-# 2. Initialize risc0 artifacts (unless skipped)
-if [[ "${SKIP_R0_INIT:-false}" != "true" ]]; then
-    echo "--- Fetching risc0 artifacts ---"
-    /scripts/init-artifacts.sh || { echo "init-artifacts failed"; exit 1; }
-fi
+# 2. Initialize risc0 artifacts
+# If artifacts were baked into image (BAKE_ARTIFACTS=true), this skips download.
+# Otherwise, fetches artifacts at runtime.
+echo "--- Checking risc0 artifacts ---"
+/scripts/init-artifacts.sh || { echo "init-artifacts failed"; exit 1; }
 
 # 3. Start services (postgres, redis, minio)
 echo "--- Starting services ---"

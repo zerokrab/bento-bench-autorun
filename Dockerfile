@@ -32,15 +32,32 @@ RUN curl -fSL https://dl.min.io/server/minio/release/linux-amd64/minio \
     chmod +x /usr/local/bin/mc
 
 # =============================================================================
-# COMMENTED OUT — Future Build Stage for baking in risc0 artifacts
+# Artifact Build Stage — optionally bake risc0 artifacts into image (5-8 GB)
+# Controlled by build arg: --build-arg BAKE_ARTIFACTS=true (default) or false
 # =============================================================================
-# Uncomment when ready to bake artifacts into the image (5-8 GB).
-# This avoids runtime fetching but dramatically increases image size.
-#
-# FROM ubuntu:24.04 AS artifact-builder
-# RUN mkdir -p /opt/bento/artifacts && \
-#     curl -fSL <URL_TO_RISC0_GROTH16_ARTIFACTS> | tar -xz -C /opt/bento/artifacts && \
-#     curl -fSL <URL_TO_BLAKE3_GROTH16_ARTIFACTS> | tar -xz -C /opt/bento/artifacts
+FROM ubuntu:24.04 AS artifact-builder
+
+ARG BAKE_ARTIFACTS=true
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    xz-utils \
+    zstd \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN if [ "$BAKE_ARTIFACTS" = "true" ]; then \
+        mkdir -p /opt/bento/artifacts/groth_16 /opt/bento/artifacts/blake3_groth16 && \
+        echo "Fetching groth16 artifacts..." && \
+        curl -fSL "https://hancho-worker.cloudflare-y513l.workers.dev/artifacts/groth16_artifacts.tar.zst" \
+        | tar --zstd -x -C /opt/bento/artifacts/groth_16 --strip-components=1 && \
+        echo "Fetching blake3_groth16 artifacts..." && \
+        curl -fSL "https://staging-signal-artifacts.beboundless.xyz/v3/proving/blake3_groth16_artifacts.tar.xz" \
+        | tar -xJ -C /opt/bento/artifacts/blake3_groth16 --strip-components=1 && \
+        echo "Artifacts baked into image"; \
+    else \
+        echo "Skipping artifact download (BAKE_ARTIFACTS=false)"; \
+    fi
 
 # =============================================================================
 # Final Stage — runtime image
@@ -82,12 +99,12 @@ COPY --from=builder /opt/bento/bin /opt/bento/bin
 COPY --from=builder /usr/local/bin/minio /usr/local/bin/minio
 COPY --from=builder /usr/local/bin/mc /usr/local/bin/mc
 
+# Copy baked artifacts from artifact-builder (only if BAKE_ARTIFACTS=true)
+COPY --from=artifact-builder /opt/bento/artifacts /opt/bento/artifacts
+
 # Copy scripts and entrypoint
 COPY scripts/ /scripts/
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh /scripts/*.sh
-
-# Create artifacts directory (populated at runtime via init-artifacts.sh)
-RUN mkdir -p /opt/bento/artifacts
 
 ENTRYPOINT ["/entrypoint.sh"]
