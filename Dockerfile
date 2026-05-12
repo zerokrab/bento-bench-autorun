@@ -62,20 +62,19 @@ ENV BENTO_BIN_DIR=/opt/bento/bin \
     BENTO_ARTIFACTS_DIR=/opt/bento/artifacts \
     RISC0_HOME=/opt/bento/artifacts/groth_16 \
     BLAKE3_GROTH16_SETUP_DIR=/opt/bento/artifacts/blake3_groth16 \
-    DATABASE_URL=postgresql://bento:***@localhost:5432/taskdb \
+    DATABASE_URL=postgresql://bento:bento@localhost:5432/taskdb \
     REDIS_URL=redis://localhost:6379 \
     S3_ENDPOINT=http://localhost:9000 \
     S3_BUCKET=workflow \
     S3_ACCESS_KEY=minioadmin \
-    S3_SECRET_KEY=*** \
+    S3_SECRET_KEY=minioadmin \
     S3_REGION=auto \
     BENTO_API_URL=http://localhost:8081 \
     REST_API_PORT=8081 \
     REDIS_PORT=6379 \
     RUST_LOG=info \
     RUST_BACKTRACE=1 \
-    PATH="/opt/bento/bin:/opt/bento/bin/bento-bench:${PATH}" \
-    BAKE_ARTIFACTS=true
+    PATH="/opt/bento/bin:/opt/bento/bin/bento-bench:${PATH}"
 
 # System packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -93,8 +92,7 @@ COPY --from=builder /opt/bento/bin /opt/bento/bin
 COPY --from=builder /usr/local/bin/minio /usr/local/bin/minio
 COPY --from=builder /usr/local/bin/mc /usr/local/bin/mc
 
-# Copy baked artifacts from artifact-builder (if BAKE_ARTIFACTS=true)
-# When BAKE_ARTIFACTS=false, this copy is skipped and artifacts are fetched at runtime
+# Copy baked artifacts from artifact-builder
 COPY --from=artifact-builder /opt/bento/artifacts /opt/bento/artifacts
 
 # Copy scripts and entrypoint
