@@ -92,6 +92,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gettext-base \
     xz-utils \
     zstd \
+    util-linux \
+    procps \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy binaries from builder
