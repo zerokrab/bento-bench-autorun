@@ -5,18 +5,27 @@
 # and ensures clean shutdown on exit or signal.
 #
 # Startup sequence:
+#   0. log-specs.sh      -> record CPU, memory, OS, disk, GPU specs
 #   1. detect-gpu.sh     -> sets GPU_COUNT, SEGMENT_SIZE
 #   2. init-artifacts.sh  -> fetch risc0 artifacts (skips if baked into image)
 #   3. init-services.sh   -> starts postgres, redis, minio
 #   4. init-agents.sh     -> starts bento-rest-api, aux, exec, prove agents
 #   5. watchdog           -> background loop monitoring service PIDs
-#   6. wait-for-ready.sh -> polls REST API /health until 200
+#   6. wait-for-ready.sh  -> polls REST API /health until 200
 #   7. run-bench.sh       -> runs bento-bench, captures exit code
 #   8. Cleanup and exit with bento-bench exit code
 
 set -euo pipefail
 
 echo "=== bento-bench-autorun starting ==="
+
+# 0. Log system specs
+echo "--- Logging System Specs ---"
+if [[ -x /scripts/log-specs.sh ]]; then
+    /scripts/log-specs.sh
+else
+    echo "log-specs.sh not found or not executable"
+fi
 
 # --- Runtime configuration ---
 export STORAGE_ROOT="${STORAGE_ROOT:-/storage}"

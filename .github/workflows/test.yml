@@ -24,6 +24,9 @@ jobs:
       - name: Run init-artifacts tests
         run: bash tests/test-init-artifacts.sh
 
+      - name: Run log-specs tests
+        run: bash tests/test_log_specs.sh
+
   smoke-test:
     runs-on: [self-hosted, linux, x64, gpu]
     timeout-minutes: 30
