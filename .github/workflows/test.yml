@@ -1,4 +1,4 @@
-name: Smoke Test (GPU Runner)
+name: Tests
 
 on:
   pull_request:
@@ -27,7 +27,7 @@ jobs:
       - name: Run log-specs tests
         run: bash tests/test_log_specs.sh
 
-  smoke-test:
+  e2e-test:
     runs-on: [self-hosted, linux, x64, gpu]
     timeout-minutes: 30
     needs: shell-tests
@@ -40,9 +40,9 @@ jobs:
 
       - name: Build image
         run: |
-          docker build -t bento-bench-smoke-test .
+          docker build -t bento-bench-e2e-test .
 
-      - name: Run smoke test
+      - name: Run e2e test
         run: |
           # Run with internal testing suite
           # timeout 1200s = 20 minutes (artifact download + services + agents startup + bench)
@@ -51,12 +51,12 @@ jobs:
             -e BENCH_SUITE=${{ env.BENCH_SUITE_URL }} \
             -e RUST_BACKTRACE=1 \
             -e SEGMENT_SIZE=17 \
-            bento-bench-smoke-test | tee smoke_test.log
+            bento-bench-e2e-test | tee e2e_test.log
 
       - name: Verify results
         run: |
           # Check if the log contains "Prove KHz"
-          if grep -q "Prove KHz" smoke_test.log; then
+          if grep -q "Prove Median MHz" e2e_test.log; then
             echo "Success: Benchmark table output found."
           else
             echo "Error: Benchmark table output not found in logs."
