@@ -8,29 +8,17 @@ Automated environment for running `bento-bench` benchmarks. This repository prov
 - **NVIDIA Driver & Container Toolkit**: Required for GPU acceleration.
 - **Supported Hardware**: NVIDIA GPU.
 
-## Build
-
-Build the Docker image using the provided Dockerfile:
-
-```bash
-docker build -t bento-bench-autorun .
-```
-
-The build uses a multi-stage `Dockerfile`:
-1. **Builder stage** — downloads bento binaries (v1.4.0), bento-bench, and MinIO server/client.
-2. **Final stage** — based on `nvidia/cuda:12.9.1-runtime-ubuntu24.04`, installs system packages (PostgreSQL 16, Redis), copies binaries from the builder, and sets the entrypoint.
-
-## Run
+## Usage
 
 To run a benchmark suite, use the following command:
 
 ```bash
 docker run --rm --gpus all \
   -e BENCH_SUITE=<suite-url> \
-  bento-bench-autorun
+  ghcr.io/zerokrab/bento-bench-autorun
 ```
 
-Replace `<suite-url>` with the URL of the benchmark suite tarball (e.g. `https://boundless-benchmarks.example.com/suites/suite-og-4-1m-10m.tar.zst`).
+Replace `<suite-url>` with the URL of the benchmark suite tarball. See [bento-bench readme](https://github.com/zerokrab/bento-bench#running-benchmarks) for a list of available suites.
 
 ### Execution Flow
 
@@ -50,21 +38,21 @@ A background watchdog monitors all service PIDs and terminates the container if 
 
 Configure the environment using the following variables:
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `BENCH_SUITE` | URL of the benchmark suite tarball to run | N/A | Yes |
-| `CHECK_TASKDB` | Enable database check if set to `true` | `false` | No |
-| `BENCH_JSON` | Path for structured JSON output | N/A | No |
-| `S3_BUCKET` | Name of the S3 bucket | `workflow` | No |
-| `S3_ACCESS_KEY` | MinIO access key | `minioadmin` | No |
-| `S3_SECRET_KEY` | MinIO secret key | `minioadmin` | No |
-| `S3_ENDPOINT` | MinIO endpoint URL | `http://localhost:9000` | No |
-| `S3_REGION` | S3 region | `auto` | No |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://bento:bento@localhost:5432/taskdb` | No |
-| `REDIS_URL` | Redis connection string | `redis://localhost:6379` | No |
-| `REDIS_PORT` | Redis port | `6379` | No |
-| `SKIP_R0_INIT` | Skip fetching risc0 artifacts if `true` | `false` | No |
-| `REST_API_PORT` | Port for the bento REST API | `8081` | No |
-| `SEGMENT_SIZE` | segment-po2 value for exec agents (auto-detected by GPU model if unset) | auto | No |
-| `EXEC_AGENTS` | Number of exec agents to start (defaults to 1 per GPU) | `GPU_COUNT` | No |
-| `STORAGE_ROOT` | Base storage directory | `/storage` | No |
+| Variable        | Description                                                             | Default                                          | Required |
+|-----------------|-------------------------------------------------------------------------|--------------------------------------------------|----------|
+| `BENCH_SUITE`   | URL of the benchmark suite tarball to run                               | N/A                                              | Yes      |
+| `CHECK_TASKDB`  | Enable database check if set to `true`                                  | `false`                                          | No       |
+| `BENCH_JSON`    | Path for structured JSON output                                         | N/A                                              | No       |
+| `S3_BUCKET`     | Name of the S3 bucket                                                   | `workflow`                                       | No       |
+| `S3_ACCESS_KEY` | MinIO access key                                                        | `minioadmin`                                     | No       |
+| `S3_SECRET_KEY` | MinIO secret key                                                        | `minioadmin`                                     | No       |
+| `S3_ENDPOINT`   | MinIO endpoint URL                                                      | `http://localhost:9000`                          | No       |
+| `S3_REGION`     | S3 region                                                               | `auto`                                           | No       |
+| `DATABASE_URL`  | PostgreSQL connection string                                            | `postgresql://bento:bento@localhost:5432/taskdb` | No       |
+| `REDIS_URL`     | Redis connection string                                                 | `redis://localhost:6379`                         | No       |
+| `REDIS_PORT`    | Redis port                                                              | `6379`                                           | No       |
+| `SKIP_R0_INIT`  | Skip fetching risc0 artifacts if `true`                                 | `false`                                          | No       |
+| `REST_API_PORT` | Port for the bento REST API                                             | `8081`                                           | No       |
+| `SEGMENT_SIZE`  | segment-po2 value for exec agents (auto-detected by GPU model if unset) | auto                                             | No       |
+| `EXEC_AGENTS`   | Number of exec agents to start (defaults to 1 per GPU)                  | `GPU_COUNT`                                      | No       |
+| `STORAGE_ROOT`  | Base storage directory                                                  | `/storage`                                       | No       |
