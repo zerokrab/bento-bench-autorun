@@ -47,19 +47,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN if [ "$BAKE_ARTIFACTS" = "true" ]; then \
-        mkdir -p /opt/bento/artifacts/groth_16 /opt/bento/artifacts/blake3_groth16 && \
         echo "Fetching groth16 artifacts..." && \
+        mkdir -p /opt/bento/artifacts/groth_16 && \
         curl -fSL "https://hancho-worker.cloudflare-y513l.workers.dev/artifacts/groth16_artifacts.tar.zst" \
-        | tar --zstd -x -C /opt/bento/artifacts/groth_16 --strip-components=1  \
+        | tar --zstd -x -C /opt/bento/artifacts/groth_16 --strip-components=1;  \
     else \
         echo "Skipping groth_16 artifact download (BAKE_ARTIFACTS=false)"; \
     fi
 
-RUN if ["$BAKE_ARTIFACTS" = "true" ]; then \
+RUN if [ "$BAKE_ARTIFACTS" = "true" ]; then \
         echo "Fetching blake3_groth16 artifacts..." && \
+        mkdir -p /opt/bento/artifacts/groth_16 /opt/bento/artifacts/blake3_groth16 && \
         curl -fSL "https://staging-signal-artifacts.beboundless.xyz/v3/proving/blake3_groth16_artifacts.tar.xz" \
-        | tar -xJ -C /opt/bento/artifacts/blake3_groth16 --strip-components=1 && \
-        echo "Artifacts baked into image"; \
+        | tar -xJ -C /opt/bento/artifacts/blake3_groth16 --strip-components=1; \
     else \
         echo "Skipping blake3_groth16 artifact download (BAKE_ARTIFACTS=false)"; \
     fi
