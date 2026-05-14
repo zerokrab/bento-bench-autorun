@@ -53,7 +53,7 @@ RUN if [ "$BAKE_ARTIFACTS" = "true" ]; then \
         | tar --zstd -x -C /opt/bento/artifacts/groth_16 --strip-components=1  \
     else \
         echo "Skipping groth_16 artifact download (BAKE_ARTIFACTS=false)"; \
-    fi \
+    fi
 
 RUN if ["$BAKE_ARTIFACTS" = "true" ]; then \
         echo "Fetching blake3_groth16 artifacts..." && \
