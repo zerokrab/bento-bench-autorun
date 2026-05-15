@@ -14,12 +14,9 @@ RUN mkdir -p /opt/bento/bin && \
     curl -fSL https://github.com/boundless-xyz/boundless/releases/download/bento-v1.4.0/bento-bundle-linux-amd64.tar.gz \
     | tar -xz -C /opt/bento/bin --strip-components=1
 
-# --- bento-bench (latest commit-hash release: main-b12573b) ---
-# v1.0.0 has not been released yet; using the latest available build as fallback.
-# Replace with v1.0.0 release URL once published:
-#   https://github.com/zerokrab/bento-bench/releases/download/v1.0.0/bento-bench-linux-amd64.tar.gz
+# --- bento-bench (latest commit-hash release: main-d9fd108) ---
 RUN mkdir -p /opt/bento/bin/bento-bench && \
-    curl -fSL https://github.com/zerokrab/bento-bench/releases/download/main-b12573b/bento-bench \
+    curl -fSL https://github.com/zerokrab/bento-bench/releases/download/main-d9fd108/bento-bench \
     -o /opt/bento/bin/bento-bench/bento-bench && \
     chmod +x /opt/bento/bin/bento-bench/bento-bench
 
